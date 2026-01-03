@@ -74,7 +74,7 @@
             outline: none;
         }
         
-        /* トッピング（オプション）のスタイル */
+        /* トッピング（オプション） */
         .options-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -90,6 +90,7 @@
             font-size: 0.9rem;
             transition: 0.2s;
             border: 1px solid transparent;
+            user-select: none; /* テキスト選択防止 */
         }
         .option-label:hover {
             background: #dbeafe;
@@ -121,6 +122,10 @@
         .btn-generate:active {
             transform: translateY(2px);
         }
+        .btn-fix {
+            background: #ef4444;
+            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+        }
 
         /* 結果エリア */
         #result-area {
@@ -130,7 +135,6 @@
             color: #fff;
             padding: 15px;
             border-radius: 8px;
-            position: relative;
         }
         #result-area textarea {
             background: transparent;
@@ -144,15 +148,16 @@
             background: var(--accent);
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 10px 16px;
             border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
             width: 100%;
             margin-top: 10px;
+            font-size: 1rem;
         }
         
-        /* タブ切り替え（作る・直す） */
+        /* タブ切り替え */
         .tabs {
             display: flex;
             margin-bottom: 20px;
@@ -165,13 +170,13 @@
             cursor: pointer;
             font-weight: bold;
             color: #9ca3af;
+            transition: 0.2s;
         }
         .tab.active {
             color: var(--primary);
             border-bottom: 3px solid var(--primary);
         }
 
-        /* 初心者へのメッセージ */
         .mindset-box {
             background: #fffbeb;
             border-left: 5px solid var(--accent);
@@ -188,14 +193,14 @@
     <p class="subtitle">プログラミング不要。作りたいものを注文しよう。</p>
 
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('create')">新しく作る</div>
-        <div class="tab" onclick="switchTab('fix')">修正・追加する</div>
+        <div id="tab-create" class="tab active">新しく作る</div>
+        <div id="tab-fix" class="tab">修正・追加する</div>
     </div>
 
     <div id="create-mode">
         <div class="mindset-box">
             <strong>💡 初心者のコツ：</strong><br>
-            最初は「60点」の出来でOKです！まずは動くものを作って、後から「もっとこうして」と注文を追加するのがプロのやり方です。
+            最初は「60点」の出来でOK！まずは動くものを作って、後から「もっとこうして」と注文を追加するのがプロのやり方です。
         </div>
 
         <div class="step">
@@ -206,7 +211,6 @@
 
         <div class="step">
             <label>Q2. こだわりのトッピング（機能）</label>
-            <span class="hint">追加したい機能を選んでください</span>
             <div class="options-grid">
                 <label class="option-label"><input type="checkbox" value="デザインはおしゃれでモダンに">🎨 おしゃれなデザイン</label>
                 <label class="option-label"><input type="checkbox" value="スマホで見やすく（レスポンシブ対応）">📱 スマホ対応</label>
@@ -217,7 +221,7 @@
             </div>
         </div>
 
-        <button class="btn-generate" onclick="generatePrompt()">AIへの注文書を作成する 🚀</button>
+        <button id="btn-create-prompt" class="btn-generate">AIへの注文書を作成する 🚀</button>
     </div>
 
     <div id="fix-mode" style="display: none;">
@@ -227,4 +231,134 @@
         </div>
         <div class="step">
             <label>どうしたいですか？</label>
-            <textarea id="fixInput" style="height: 100px;" placeholder="例：ボタンが反応しないから直して、文字をもっと大きくして"></
+            <textarea id="fixInput" style="height: 100px;" placeholder="例：ボタンが反応しないから直して、文字をもっと大きくして"></textarea>
+        </div>
+        <button id="btn-fix-prompt" class="btn-generate btn-fix">修正依頼を作成する 🛠️</button>
+    </div>
+
+    <div id="result-area">
+        <p style="margin-top:0; font-size:0.8rem; color:#94a3b8;">▼ これをコピーしてAIに貼り付けてください</p>
+        <textarea id="outputPrompt" readonly></textarea>
+        <button id="btn-copy" class="copy-btn">コピーする 📋</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // 要素の取得
+    const tabCreate = document.getElementById('tab-create');
+    const tabFix = document.getElementById('tab-fix');
+    const createMode = document.getElementById('create-mode');
+    const fixMode = document.getElementById('fix-mode');
+    const resultArea = document.getElementById('result-area');
+    const outputPrompt = document.getElementById('outputPrompt');
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    
+    // タブ切り替え処理
+    tabCreate.addEventListener('click', () => {
+        tabCreate.classList.add('active');
+        tabFix.classList.remove('active');
+        createMode.style.display = 'block';
+        fixMode.style.display = 'none';
+        resultArea.style.display = 'none';
+    });
+
+    tabFix.addEventListener('click', () => {
+        tabFix.classList.add('active');
+        tabCreate.classList.remove('active');
+        createMode.style.display = 'none';
+        fixMode.style.display = 'block';
+        resultArea.style.display = 'none';
+    });
+
+    // チェックボックスの見た目制御
+    checkboxes.forEach(box => {
+        box.addEventListener('change', () => {
+            if(box.checked) {
+                box.parentElement.classList.add('checked');
+            } else {
+                box.parentElement.classList.remove('checked');
+            }
+        });
+    });
+
+    // 結果を表示する関数
+    function showResult(text) {
+        outputPrompt.value = text;
+        resultArea.style.display = 'block';
+        resultArea.scrollIntoView({behavior: "smooth"});
+    }
+
+    // 【作成ボタン】クリック時
+    document.getElementById('btn-create-prompt').addEventListener('click', () => {
+        const base = document.getElementById('baseInput').value;
+        if (!base) {
+            alert("「何を作りたいか」を入力してください！");
+            return;
+        }
+
+        let options = "";
+        document.querySelectorAll('input[type="checkbox"]:checked').forEach((box) => {
+            options += `・${box.value}\n`;
+        });
+
+        const prompt = `あなたは優秀なフロントエンドエンジニアです。
+以下の要件に従って、Webアプリを作成してください。
+
+【作成するもの】
+${base}
+
+【必須要件】
+・HTML, CSS, JavaScriptをすべて1つのファイル（index.html）にまとめてください。
+・外部ファイルや複雑なビルドツールは使用しないでください。
+・コードは省略せず、そのままコピペして動く完全な状態で出力してください。
+
+【追加のこだわり（機能・デザイン）】
+${options}
+${options === "" ? "・シンプルで使いやすくしてください。" : ""}
+
+【初心者への配慮】
+・もしエラーが起きそうな箇所があれば、コメントで補足してください。
+・デザインはTailwind CSSなどは使わず、styleタグ内のCSSで見やすく整えてください。`;
+
+        showResult(prompt);
+    });
+
+    // 【修正ボタン】クリック時
+    document.getElementById('btn-fix-prompt').addEventListener('click', () => {
+        const request = document.getElementById('fixInput').value;
+        if (!request) {
+            alert("修正内容を入力してください");
+            return;
+        }
+
+        const prompt = `今のコードに対して、以下の修正・変更を行ってください。
+
+【依頼内容】
+${request}
+
+【ルール】
+・既存のコードの動いている部分は壊さないでください。
+・修正後のコード全体を（省略せずに）もう一度出力してください。
+・1つのHTMLファイルで完結する形式を維持してください。`;
+
+        showResult(prompt);
+    });
+
+    // 【コピーボタン】クリック時
+    document.getElementById('btn-copy').addEventListener('click', () => {
+        outputPrompt.select();
+        document.execCommand("copy");
+        
+        const btn = document.getElementById('btn-copy');
+        const originalText = btn.innerText;
+        btn.innerText = "コピーしました！✨";
+        setTimeout(() => {
+            btn.innerText = originalText;
+        }, 2000);
+    });
+});
+</script>
+
+</body>
+</html>

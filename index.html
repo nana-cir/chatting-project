@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIアプリ・オーダーシート</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #eff6ff;
+            --accent: #f59e0b;
+            --text: #1f2937;
+            --bg: #f3f4f6;
+        }
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 1.5rem;
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 30px;
+        }
+        .step {
+            margin-bottom: 25px;
+            padding-bottom: 25px;
+            border-bottom: 2px dashed #e5e7eb;
+        }
+        .step:last-child {
+            border-bottom: none;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        .hint {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 10px;
+            display: block;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: 0.2s;
+        }
+        input[type="text"]:focus, textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+        
+        /* トッピング（オプション）のスタイル */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .option-label {
+            display: flex;
+            align-items: center;
+            background: var(--secondary);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: 0.2s;
+            border: 1px solid transparent;
+        }
+        .option-label:hover {
+            background: #dbeafe;
+        }
+        .option-label input {
+            margin-right: 8px;
+            transform: scale(1.2);
+        }
+        .option-label.checked {
+            border-color: var(--primary);
+            background: #dbeafe;
+            font-weight: bold;
+        }
+
+        /* 生成ボタン */
+        .btn-generate {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+            transition: 0.2s;
+        }
+        .btn-generate:active {
+            transform: translateY(2px);
+        }
+
+        /* 結果エリア */
+        #result-area {
+            display: none;
+            margin-top: 20px;
+            background: #1e293b;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            position: relative;
+        }
+        #result-area textarea {
+            background: transparent;
+            color: #fff;
+            border: none;
+            font-family: monospace;
+            height: 200px;
+            resize: vertical;
+        }
+        .copy-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        /* タブ切り替え（作る・直す） */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            color: #9ca3af;
+        }
+        .tab.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        /* 初心者へのメッセージ */
+        .mindset-box {
+            background: #fffbeb;
+            border-left: 5px solid var(--accent);
+            padding: 15px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>AIアプリ・オーダーシート 🪄</h1>
+    <p class="subtitle">プログラミング不要。作りたいものを注文しよう。</p>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('create')">新しく作る</div>
+        <div class="tab" onclick="switchTab('fix')">修正・追加する</div>
+    </div>
+
+    <div id="create-mode">
+        <div class="mindset-box">
+            <strong>💡 初心者のコツ：</strong><br>
+            最初は「60点」の出来でOKです！まずは動くものを作って、後から「もっとこうして」と注文を追加するのがプロのやり方です。
+        </div>
+
+        <div class="step">
+            <label>Q1. 何を作りたいですか？</label>
+            <span class="hint">例：割り勘計算機、デジタル時計、おみくじ、To-Doリスト</span>
+            <input type="text" id="baseInput" placeholder="ここに作りたいものを入力（例：シンプルな電卓）">
+        </div>
+
+        <div class="step">
+            <label>Q2. こだわりのトッピング（機能）</label>
+            <span class="hint">追加したい機能を選んでください</span>
+            <div class="options-grid">
+                <label class="option-label"><input type="checkbox" value="デザインはおしゃれでモダンに">🎨 おしゃれなデザイン</label>
+                <label class="option-label"><input type="checkbox" value="スマホで見やすく（レスポンシブ対応）">📱 スマホ対応</label>
+                <label class="option-label"><input type="checkbox" value="結果をCSV形式でダウンロード可能に（Excel/弥生会計用）">💾 CSV保存ボタン</label>
+                <label class="option-label"><input type="checkbox" value="スマホのカメラを使用する機能を実装">📸 カメラ機能を使う</label>
+                <label class="option-label"><input type="checkbox" value="データをブラウザに保存（リロードしても消えない）">🧠 データを記憶させる</label>
+                <label class="option-label"><input type="checkbox" value="効果音やアニメーションを追加して楽しく">✨ アニメーション追加</label>
+            </div>
+        </div>
+
+        <button class="btn-generate" onclick="generatePrompt()">AIへの注文書を作成する 🚀</button>
+    </div>
+
+    <div id="fix-mode" style="display: none;">
+        <div class="mindset-box" style="border-color: #ef4444; background: #fef2f2;">
+            <strong>🚑 SOSモード：</strong><br>
+            動かなくても大丈夫。「直しといて」と言えばAIが直してくれます。
+        </div>
+        <div class="step">
+            <label>どうしたいですか？</label>
+            <textarea id="fixInput" style="height: 100px;" placeholder="例：ボタンが反応しないから直して、文字をもっと大きくして"></
